@@ -265,3 +265,80 @@ describe('Race 레인 중립성', () => {
     });
   }, 120000);
 });
+
+describe('Race 접전 보정(위치별 사건 + 막판 스퍼트)', () => {
+  const BAD = new Set(['trip', 'moonwalk', 'nap', 'uturn', 'warp']);
+
+  it('550 m 이후에는 큰 손실 사건과 순간이동이 새로 시작되지 않는다', () => {
+    let seen = 0;
+    for (let seed = 1; seed <= 100; seed++) {
+      const race = new Race(6, seed);
+      const prev = race.horses.map(() => 'run');
+      while (!race.done && race.time < 400) {
+        const xBefore = race.horses.map((h) => h.x);
+        race.step();
+        for (const h of race.horses) {
+          if (BAD.has(h.pose) && !BAD.has(prev[h.id])) {
+            seen++;
+            expect(xBefore[h.id], `seed ${seed} horse ${h.number}`).toBeLessThan(551);
+          }
+          prev[h.id] = h.pose;
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(200);
+  }, 60000);
+
+  it('400 m 전에는 평소 속도 그대로이고, 막판에는 뒤처진 말만 빨라진다', () => {
+    let boosted = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const race = new Race(6, seed);
+      while (!race.done && race.time < 400) {
+        const live = race.horses.filter((h) => !h.finished);
+        const lead = Math.max(...live.map((h) => h.x));
+        const before = live.map((h) => h.pose);
+        const preGap = live.map((h) => lead - h.x);
+        race.step();
+        for (const [i, h] of live.entries()) {
+          if (h.finished || h.pose !== 'run' || before[i] !== 'run') continue;
+          if (h.x < 395) expect(h.speed, `seed ${seed}`).toBeCloseTo(h.baseSpeed, 6);
+          const gap = preGap[i];
+          if (h.x > 650 && h.x < 690 && gap > 40) {
+            boosted++;
+            expect(h.speed, `seed ${seed}`).toBeGreaterThan(h.baseSpeed * 1.03);
+          }
+          if (gap === 0 && h.x < 690) expect(h.speed).toBeLessThanOrEqual(h.baseSpeed * 1.0001);
+        }
+      }
+    }
+    expect(boosted).toBeGreaterThan(50);
+  }, 60000);
+
+  it('6마리 300경주: 1·2위 평균 간격 1.5초 이하, 1초 미만 비율 45 % 이상', () => {
+    const gaps: number[] = [];
+    for (let seed = 1; seed <= 300; seed++) {
+      const race = run(6, seed * 11 + 3);
+      const t = race.finishOrder.map((id) => race.horses[id].finishTime);
+      gaps.push(t[1] - t[0]);
+    }
+    const avg = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    const close = gaps.filter((g) => g < 1).length / gaps.length;
+    expect(avg).toBeLessThanOrEqual(1.5);
+    expect(close).toBeGreaterThanOrEqual(0.45);
+  }, 120000);
+
+  it('접전 보정이 있어도 선두 교체가 평균 3회 이상 일어난다(6마리 200경주)', () => {
+    let changes = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const race = new Race(6, seed * 11 + 3);
+      let lead = -1;
+      while (!race.done && race.time < 400) {
+        race.step();
+        const l = race.ranking()[0].id;
+        if (lead !== -1 && l !== lead && race.time > 5) changes++;
+        lead = l;
+      }
+    }
+    expect(changes / 200).toBeGreaterThanOrEqual(3);
+  }, 120000);
+});

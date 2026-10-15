@@ -27,7 +27,13 @@ const KO_FLING_SPEED = -0.8;
 const KO_MIN_SEC = 1.6;
 const KO_VAR_SEC = 0.6;
 const VICTORY_SEC = 1.2;
-const VICTORY_SPEED = 2.4;
+const VICTORY_SPEED = 1.8;
+
+const POS_SCALE_M = 50;
+const SPRINT_START_M = 400;
+const SPRINT_BOOST = 0.14;
+const SPRINT_GAP_M = 10;
+const LATE_RACE_M = 550;
 
 export type Pose = 'run' | EventKind | 'brawl' | 'ko' | 'victory';
 export type CommentaryKind = EventKind | 'brawl';
@@ -79,6 +85,8 @@ export class Race {
   done = false;
 
   private rand: () => number;
+  private liveAvg = 0;
+  private liveLead = 0;
 
   constructor(count: number, seed: number) {
     this.rand = mulberry32(seed);
@@ -121,6 +129,7 @@ export class Race {
       return;
     }
     this.time += DT;
+    this.updatePack();
     const crossing: { horse: Horse; at: number }[] = [];
     for (const h of this.horses) {
       if (h.finished) {
@@ -128,7 +137,7 @@ export class Race {
         continue;
       }
       if (h.pose === 'run') {
-        h.speed = h.baseSpeed;
+        h.speed = h.baseSpeed * (1 + this.sprintBoost(h));
         h.cooldown -= DT;
         if (h.cooldown <= 0 && this.rand() < EVENT_RATE * DT) this.startEvent(h);
       } else if (h.pose === 'brawl') {
@@ -165,6 +174,27 @@ export class Race {
     if (this.finishOrder.length === this.horses.length) this.done = true;
   }
 
+  private updatePack(): void {
+    let sum = 0;
+    let count = 0;
+    let lead = 0;
+    for (const h of this.horses) {
+      if (h.finished) continue;
+      sum += h.x;
+      count++;
+      if (h.x > lead) lead = h.x;
+    }
+    this.liveAvg = count > 0 ? sum / count : 0;
+    this.liveLead = lead;
+  }
+
+  private sprintBoost(h: Horse): number {
+    if (h.x < SPRINT_START_M) return 0;
+    const ramp = Math.min(1, (h.x - SPRINT_START_M) / (TRACK_M - SPRINT_START_M));
+    const gap = Math.min(1, Math.max(0, (this.liveLead - h.x) / SPRINT_GAP_M));
+    return SPRINT_BOOST * ramp * gap;
+  }
+
   private backToRun(h: Horse): void {
     h.pose = 'run';
     h.poseT = 0;
@@ -184,7 +214,8 @@ export class Race {
 
   private startEvent(h: Horse): void {
     if (this.rand() < BRAWL_SHARE && this.tryBrawl(h)) return;
-    const def = pickEvent(this.rand);
+    const score = Math.max(-1, Math.min(1, (h.x - this.liveAvg) / POS_SCALE_M));
+    const def = pickEvent(this.rand, score, h.x >= LATE_RACE_M);
     h.pose = def.kind;
     h.poseT = 0;
     h.poseDur = def.minDur + this.rand() * (def.maxDur - def.minDur);

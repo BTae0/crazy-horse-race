@@ -47,7 +47,7 @@ export const EVENTS: EventDef[] = [
     weight: 9,
     minDur: 2,
     maxDur: 3.5,
-    roll: (rand) => 0.6 + rand() * 1,
+    roll: (rand) => 0.6 + rand() * 0.8,
     speed: (b, _t, _d, p) => b * p,
     say: (who) => `${who}이 두 발로 벌떡 일어서서 달린다!`,
   },
@@ -57,7 +57,7 @@ export const EVENTS: EventDef[] = [
     minDur: 1.3,
     maxDur: 1.8,
     roll: none,
-    speed: (b) => b * 2.4,
+    speed: (b) => b * 1.8,
     say: (who) => `${who} 엉덩이에서 로켓이 발사됐다!`,
   },
   {
@@ -83,7 +83,7 @@ export const EVENTS: EventDef[] = [
     weight: 8,
     minDur: 1,
     maxDur: 1.2,
-    roll: (rand) => 25 + rand() * 25,
+    roll: (rand) => 16 + rand() * 14,
     speed: (_b, _t, dur, p) => p / dur,
     say: (who) => `${who}이 공중제비를 돌며 도약했다!`,
   },
@@ -92,7 +92,7 @@ export const EVENTS: EventDef[] = [
     weight: 9,
     minDur: 1.2,
     maxDur: 2,
-    roll: (rand) => -1.2 + rand() * 3.8,
+    roll: (rand) => -1 + rand() * 2.8,
     speed: (b, _t, _d, p) => b * p,
     say: (who) => `${who}이 바나나 껍질을 밟고 빙글빙글 미끄러진다!`,
   },
@@ -102,7 +102,7 @@ export const EVENTS: EventDef[] = [
     minDur: 2,
     maxDur: 3,
     roll: none,
-    speed: (b) => b * 1.7,
+    speed: (b) => b * 1.4,
     say: (who) => `${who}에게 날개가 돋았다! 날아간다!`,
   },
   {
@@ -110,7 +110,7 @@ export const EVENTS: EventDef[] = [
     weight: 6,
     minDur: 0.8,
     maxDur: 0.8,
-    roll: (rand) => (rand() < 0.5 ? -1 : 1) * (30 + rand() * 50),
+    roll: (rand) => (rand() < 0.5 ? -1 : 1) * (12 + rand() * 18),
     speed: () => 0,
     jump: (p) => p,
     say: (who) => `${who}이 순간이동했다!`,
@@ -119,13 +119,47 @@ export const EVENTS: EventDef[] = [
 
 export const EVENT_BY_KIND = Object.fromEntries(EVENTS.map((e) => [e.kind, e])) as Record<EventKind, EventDef>;
 
-const TOTAL_WEIGHT = EVENTS.reduce((sum, e) => sum + e.weight, 0);
+export type EventTone = 'good' | 'bad' | 'neutral';
 
-export function pickEvent(rand: () => number): EventDef {
-  let r = rand() * TOTAL_WEIGHT;
-  for (const e of EVENTS) {
-    r -= e.weight;
-    if (r < 0) return e;
+export const EVENT_TONE: Record<EventKind, EventTone> = {
+  rocket: 'good',
+  wings: 'good',
+  backflip: 'good',
+  trip: 'bad',
+  moonwalk: 'bad',
+  nap: 'bad',
+  uturn: 'bad',
+  biped: 'neutral',
+  banana: 'neutral',
+  warp: 'neutral',
+};
+
+const TRAILING_GOOD_UP = 2.5;
+const TRAILING_BAD_DOWN = 0.8;
+const LEADING_BAD_UP = 2;
+const LEADING_GOOD_DOWN = 0.8;
+
+export function weightFactor(tone: EventTone, score: number): number {
+  const p = Math.max(-1, Math.min(1, score));
+  if (tone === 'neutral') return 1;
+  if (p < 0) return tone === 'good' ? 1 + TRAILING_GOOD_UP * -p : 1 - TRAILING_BAD_DOWN * -p;
+  return tone === 'bad' ? 1 + LEADING_BAD_UP * p : 1 - LEADING_GOOD_DOWN * p;
+}
+
+export function pickEvent(rand: () => number, score = 0, late = false): EventDef {
+  let total = 0;
+  const weights = EVENTS.map((e) => {
+    const tone = EVENT_TONE[e.kind];
+    const blocked = late && (tone === 'bad' || e.kind === 'warp');
+    const w = blocked ? 0 : e.weight * weightFactor(tone, score);
+    total += w;
+    return w;
+  });
+  let r = rand() * total;
+  for (let i = 0; i < EVENTS.length; i++) {
+    r -= weights[i];
+    if (r < 0 && weights[i] > 0) return EVENTS[i];
   }
+  for (let i = EVENTS.length - 1; i >= 0; i--) if (weights[i] > 0) return EVENTS[i];
   return EVENTS[EVENTS.length - 1];
 }
