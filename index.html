@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>엽기 경마</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ffca28'/%3E%3Ccircle cx='16' cy='17' r='8' fill='%23e53935'/%3E%3Ccircle cx='13' cy='15' r='2' fill='%23fff'/%3E%3C/svg%3E" />
+    <script type="module" crossorigin src="./assets/index-Bw9tJg9e.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-5eNfoT_Z.css">
+  </head>
+  <body>
+    <main id="app">
+      <section id="setup" class="screen">
+        <header class="brand">
+          <h1>엽기 경마</h1>
+          <p>넘어지고, 뒤로 가고, 두 발로 일어서는 복불복 레이스</p>
+        </header>
+
+        <div class="card">
+          <div class="card-head">
+            <label for="count">말 수</label>
+            <span id="countLabel" class="chip">6마리</span>
+          </div>
+          <div class="stepper">
+            <button id="minus" class="step" type="button" aria-label="말 수 줄이기">−</button>
+            <input id="count" type="range" min="2" max="12" step="1" value="6" />
+            <button id="plus" class="step" type="button" aria-label="말 수 늘리기">+</button>
+          </div>
+          <ul id="preview" class="preview" aria-label="말 미리보기"></ul>
+
+          <div class="card-head spaced"><span class="label">경주 중 벌어지는 일</span></div>
+          <ul class="events">
+            <li>넘어짐</li>
+            <li>뒤로 달리기</li>
+            <li>두 발 달리기</li>
+            <li>로켓 점프</li>
+            <li>졸기</li>
+            <li>유턴</li>
+            <li>백플립</li>
+            <li>바나나 미끄러짐</li>
+            <li>날개 비행</li>
+            <li>순간이동</li>
+            <li>옆 레인 난투극</li>
+          </ul>
+
+          <button id="start" class="btn primary" type="button">Start</button>
+        </div>
+      </section>
+
+      <section id="race" class="screen hidden">
+        <canvas id="stage" aria-label="경마 경주 화면"></canvas>
+        <div class="hud">
+          <button id="back" class="btn small" type="button">← 설정</button>
+          <div class="hud-right">
+            <button id="boardToggle" class="btn small board-toggle" type="button" aria-expanded="false" aria-controls="board">순위</button>
+            <button id="skip" class="btn small hidden" type="button">결과 바로 보기</button>
+            <button id="speed" class="btn small" type="button">1x</button>
+            <button id="pause" class="btn small" type="button">일시정지</button>
+          </div>
+        </div>
+        <aside id="board" class="board" aria-label="실시간 순위"></aside>
+        <div id="countdown" class="countdown hidden" aria-hidden="true"></div>
+      </section>
+
+      <div id="result" class="overlay hidden" role="dialog" aria-modal="true" aria-label="결과">
+        <canvas id="confetti"></canvas>
+        <div class="result-card">
+          <p class="kicker">우승</p>
+          <div id="winner" class="winner"></div>
+          <ol id="ranking" class="ranking"></ol>
+          <div class="actions">
+            <button id="again" class="btn primary" type="button">다시 달리기</button>
+            <button id="toSetup" class="btn ghost" type="button">설정으로</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
