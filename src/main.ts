@@ -28,6 +28,7 @@ const SKIP_STEP_LIMIT = 60 * 600;
 let renderer: Renderer | null = null;
 let race: Race | null = null;
 let count = 6;
+let horseNames: string[] = [];
 let raf = 0;
 let last = 0;
 let acc = 0;
@@ -51,15 +52,16 @@ function showScreen(name: 'setup' | 'race'): void {
   raceScreen.classList.toggle('hidden', name !== 'race');
 }
 
-function startRace(n: number): void {
+function startRace(n: number, names: string[] = horseNames): void {
   count = n;
+  horseNames = names;
   hideResult();
   showScreen('race');
   $('back').focus();
   renderer ??= new Renderer(stage);
   renderer.resize();
   renderer.reset();
-  race = new Race(n, newSeed());
+  race = new Race(n, newSeed(), names);
   speed = 1;
   paused = false;
   ended = false;
@@ -134,7 +136,7 @@ function updateBoard(): void {
     sw.style.background = h.color;
     const nm = document.createElement('span');
     nm.className = 'nm';
-    nm.textContent = `${h.number}번 ${h.colorName}`;
+    nm.textContent = `${h.number}번 ${h.name}`;
     li.append(no, sw, nm);
     if (h.finished) {
       const fin = document.createElement('span');
@@ -178,7 +180,7 @@ function backToSetup(): void {
 
 $('back').addEventListener('click', backToSetup);
 $('toSetup').addEventListener('click', backToSetup);
-$('again').addEventListener('click', () => startRace(count || setup.count()));
+$('again').addEventListener('click', () => startRace(count || setup.count(), horseNames));
 speedBtn.addEventListener('click', () => {
   speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
   speedBtn.textContent = `${speed}x`;

@@ -1,4 +1,4 @@
-import { COLORS, clampCount } from './horses';
+import { COLORS, clampCount, sanitizeName } from './horses';
 import { EVENT_BY_KIND, pickEvent, type EventKind } from './events';
 import { mulberry32 } from './rng';
 
@@ -43,6 +43,7 @@ export interface Horse {
   number: number;
   color: string;
   colorName: string;
+  name: string;
   label: string;
   x: number;
   speed: number;
@@ -88,17 +89,19 @@ export class Race {
   private liveAvg = 0;
   private liveLead = 0;
 
-  constructor(count: number, seed: number) {
+  constructor(count: number, seed: number, names: string[] = []) {
     this.rand = mulberry32(seed);
     const n = clampCount(count);
     for (let id = 0; id < n; id++) {
       const color = COLORS[id];
+      const name = sanitizeName(names[id] ?? '') || color.name;
       this.horses.push({
         id,
         number: id + 1,
         color: color.hex,
         colorName: color.name,
-        label: `${id + 1}번 ${color.name} 말`,
+        name,
+        label: `${id + 1}번 ${name} 말`,
         x: 0,
         speed: 0,
         baseSpeed: BASE_SPEED * (1 + (this.rand() - 0.5) * 2 * SPEED_JITTER),

@@ -26,3 +26,15 @@ export function clampCount(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_HORSES;
   return Math.min(MAX_HORSES, Math.max(MIN_HORSES, Math.floor(n)));
 }
+
+export const MAX_NAME_LEN = 10;
+
+export function sanitizeName(raw: string): string {
+  if (typeof raw !== 'string') return '';
+  const text = raw
+    .replace(/[\t\n\r]/g, ' ')
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return Array.from(text).slice(0, MAX_NAME_LEN).join('').trim();
+}

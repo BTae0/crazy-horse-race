@@ -342,3 +342,43 @@ describe('Race 접전 보정(위치별 사건 + 막판 스퍼트)', () => {
     expect(changes / 200).toBeGreaterThanOrEqual(3);
   }, 120000);
 });
+
+describe('Race 말 이름', () => {
+  it('이름을 주면 말 이름과 라벨에 반영되고, 비어 있으면 색 이름을 쓴다', () => {
+    const race = new Race(3, 1, ['번개', '   ', '']);
+    expect(race.horses[0].name).toBe('번개');
+    expect(race.horses[0].label).toBe('1번 번개 말');
+    expect(race.horses[1].name).toBe('파랑');
+    expect(race.horses[1].label).toBe('2번 파랑 말');
+    expect(race.horses[2].name).toBe('초록');
+  });
+
+  it('이름을 안 주거나 말 수보다 많이 줘도 안전하다', () => {
+    expect(new Race(2, 1).horses.map((h) => h.name)).toEqual(['빨강', '파랑']);
+    const race = new Race(2, 1, ['가', '나', '다', '라']);
+    expect(race.horses.map((h) => h.name)).toEqual(['가', '나']);
+  });
+
+  it('긴 이름은 10자로 자르고 앞뒤 공백은 지운다', () => {
+    const race = new Race(2, 1, ['  가나다라마바사아자차카타  ', '번개']);
+    expect(race.horses[0].name).toBe('가나다라마바사아자차');
+  });
+
+  it('이름은 경주 결과에 영향을 주지 않는다(같은 시드는 같은 순위)', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const plain = run(6, seed);
+      const named = new Race(6, seed, ['하나', '둘', '셋', '넷', '다섯', '여섯']);
+      while (!named.done && named.time < 400) named.step();
+      expect(named.finishOrder, `seed ${seed}`).toEqual(plain.finishOrder);
+      expect(named.time).toBe(plain.time);
+    }
+  });
+
+  it('해설 문구에도 사용자 이름이 들어간다', () => {
+    const race = run(2, 3);
+    race.commentary.forEach((c) => expect(c.text).toMatch(/번 .* 말/));
+    const named = new Race(2, 3, ['번개', '천둥']);
+    while (!named.done && named.time < 400) named.step();
+    expect(named.commentary.some((c) => c.text.includes('번개') || c.text.includes('천둥'))).toBe(true);
+  });
+});

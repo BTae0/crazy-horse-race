@@ -85,6 +85,11 @@ export class Renderer {
         variant: horse.id,
       });
     }
+    const tagFont = placed.length > 8 ? 12 : 14;
+    for (const { horse, y } of placed) {
+      const px = sx(view, horse.x);
+      if (px > -size && px < w + size) this.drawNameTag(px, y - size * 0.64, horse.name, horse.color, tagFont);
+    }
     for (const { horse, y } of placed) {
       if (horse.pose !== 'brawl' || horse.role !== 1) continue;
       const mate = placed.find((p) => p.horse.id === horse.partner);
@@ -94,6 +99,27 @@ export class Renderer {
       if (cx > -size && cx < w + size) drawBrawlCloud(ctx, cx, cy, size, time);
     }
     this.drawProgress(race);
+  }
+
+  private drawNameTag(x: number, y: number, name: string, color: string, fontPx: number): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.font = `bold ${fontPx}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const textW = ctx.measureText(name).width;
+    const padX = 8;
+    const hgt = fontPx + 6;
+    ctx.fillStyle = 'rgba(10,18,32,0.82)';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x - textW / 2 - padX, y, textW + padX * 2, hgt, hgt / 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(name, x, y + hgt / 2 + 0.5);
+    ctx.restore();
   }
 
   private drawOffscreen(left: boolean, y: number, color: string, num: number): void {
